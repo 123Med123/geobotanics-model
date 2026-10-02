@@ -39,7 +39,12 @@ FEATURE_INDICES = [i for i in INDEX_NAMES if i != "ndmi"]
 
 
 class PipelineStop(RuntimeError):
-    pass
+    """A deliberate stop. ``masks`` is the per-zone-per-date mask table when the stop happened
+    after masking (so the numbers behind the decision are kept), else None."""
+
+    def __init__(self, message: str, masks: pd.DataFrame | None = None):
+        super().__init__(message)
+        self.masks = masks
 
 
 def parse_args():
@@ -117,7 +122,8 @@ def run_belt(pair, cfg, data_dir: Path, conn, skip_download: bool):
             f"{pair.belt}: only {n_used} date(s) usable after masking (need "
             f"{cfg['dates']['min_dates_per_belt']}). See data/dates/{pair.belt}_dates.csv and the mask table. "
             "Options: relax max_scene_cloud_pct, add years, or enable a reserve belt in zones.yaml - "
-            "this is a decision for the project owner, so the pipeline does not switch belts itself."
+            "this is a decision for the project owner, so the pipeline does not switch belts itself.",
+            masks=masks,
         )
     stats = pd.DataFrame(stats_rows)
     patches = pd.concat(patch_frames, ignore_index=True) if patch_frames else pd.DataFrame()
@@ -208,10 +214,15 @@ def main():
         except PipelineStop as e:
             print(f"STOP: {e}")
             stopped.append(str(e))
+            if e.masks is not None:  # keep the numbers behind the stop (rows have used=False/True per date)
+                all_masks.append(e.masks)
             continue
         all_stats.append(s); all_patches.append(p); all_masks.append(m)
 
     if not all_stats:
+        if all_masks:
+            pd.concat(all_masks, ignore_index=True).to_csv(results_dir / "masking.csv", index=False)
+            print(f"Mask table for the stopped belt(s): {results_dir / 'masking.csv'}")
         sys.exit("No belt could be analysed:\n" + "\n".join(stopped))
 
     stats = pd.concat(all_stats, ignore_index=True)
