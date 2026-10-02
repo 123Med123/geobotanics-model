@@ -1,0 +1,153 @@
+# Ground-truth zones for Phase 1.
+#
+# PHASE 1 SCOPE: base-metal (Cu, Zn-Pb) belts only. No U/Th/REE targets, no
+# Tummalapalle, no Seshachalam. Do not add them here.
+#
+# How geometry is built (src/zones.py):
+#   mineralised zone = union of circular buffers (radius_m) around each deposit point,
+#                      in the local UTM zone.
+#   control zone     = the SAME shape translated by control.offset_km (east, north).
+#                      Same shape => same area and pixel count, so zone-vs-control
+#                      differences can't come from sampling a bigger or differently
+#                      shaped area. The loader rejects offsets outside 20-50 km or
+#                      any overlap with the mineralised zone.
+#
+# VERIFICATION GATE: the pipeline refuses to run a belt unless BOTH its zones have
+# verification.status: verified. `--allow-unverified` overrides this, and every output
+# is then stamped "UNVERIFIED COORDINATES". As of 2026-09-28 NOTHING below is verified
+# to the project's standard: the deposit points come from search-result snippets of
+# the cited sources (the primary pages were unreachable from the build environment),
+# and the controls are proposals that have not been checked against GSI geology.
+#
+# To verify a zone: open each source, confirm the point sits on the deposit (pit or
+# orebody trace in satellite imagery / OSM), check the control against GSI Bhukosh
+# (bhukosh.gsi.gov.in: no mapped mineralisation, similar lithology/land cover), then
+# set status: verified, checked_by, checked_on, and correct the numbers if needed.
+
+belts:
+  khetri:
+    enabled: true
+    climate: semi-arid
+    commodity: Cu
+    host: Proterozoic metasediments of the Delhi Supergroup (North Delhi fold belt)
+    radius_m: 2500
+    deposits:
+      - name: Madan-Kudan (Khetri)
+        lat: 28.0708      # 28°04'15"N
+        lon: 75.7903      # 75°47'25"E
+      - name: Kolihan
+        lat: 28.0000      # 28°00'N (only minute precision in source)
+        lon: 75.7333      # 75°44'E
+      - name: Chandmari
+        lat: 27.9333      # 27°56'N (only minute precision in source)
+        lon: 75.7667      # 75°46'E
+    sources:
+      - "Knight et al., The Khetri Copper Belt, Rajasthan: IOCG terrane (PGC Publishing): https://portergeo.com.au/full_text/Knight_Khetri-PGC_Publishing.pdf"
+      - "science.gov topic page, khetri copper belt (lat/long table): https://www.science.gov/topicpages/k/khetri+copper+belt"
+    verification:
+      status: unverified
+      checked_by: null
+      checked_on: null
+      notes: >
+        Coordinates taken from a search-result snippet of the sources above; primary
+        pages not opened. Banwas deposit omitted (no coordinates found). Kolihan and
+        Chandmari have only arc-minute precision (~1.8 km) - check against the pits in
+        imagery before verifying.
+    control:
+      name: Khetri control (proposed, ~30 km W, off-strike)
+      offset_km: [-30.0, 0.0]   # east, north
+      verification:
+        status: unverified
+        checked_by: null
+        checked_on: null
+        notes: >
+          PROPOSAL ONLY. Moves the zone west off the belt's NNE-SSW strike. Risk: the
+          belt is in Aravalli hills while ~30 km west is flatter, sand-covered farmland,
+          so land cover may NOT match. Check Bhukosh for mapped Cu occurrences and pick
+          a hillier off-strike alternative if needed.
+
+  malanjkhand:
+    enabled: true
+    climate: sub-humid, forested
+    commodity: Cu (Mo)
+    host: Palaeoproterozoic Malanjkhand granitoid (quartz-reef-hosted porphyry-type Cu)
+    radius_m: 2500
+    deposits:
+      - name: Malanjkhand open pit
+        lat: 22.0008      # 22°00'03"N
+        lon: 80.7055      # 80°42'20"E
+    sources:
+      - "Hydrothermally altered mineral mapping of the Malanjkhand copper mineralization using Landsat (Geology, Ecology, and Landscapes, 2024): https://www.tandfonline.com/doi/full/10.1080/24749508.2024.2441025"
+      - "latitude.to Malanjkhand: https://latitude.to/articles-by-country/in/india/110920/malanjkhand"
+    verification:
+      status: unverified
+      checked_by: null
+      checked_on: null
+      notes: >
+        The point may be the township rather than the pit centre; the 2024 paper gives a
+        study box of 21°55'-22°05'N, 80°40'-80°55'E. Move the point onto the pit and
+        orebody trace (visible in imagery) before verifying.
+    control:
+      name: Malanjkhand control (proposed, ~25 km N, forested granitoid terrain)
+      offset_km: [0.0, 25.0]
+      verification:
+        status: unverified
+        checked_by: null
+        checked_on: null
+        notes: >
+          PROPOSAL ONLY. Aimed at similar sal/mixed forest to the north. Risk: this is
+          toward the Kanha tiger reserve buffer, where protected-forest condition may
+          differ from the managed forest around the mine, which would be a land-use
+          confound. Check Bhukosh and forest boundaries; a SE offset is the alternative.
+
+  # Reserve pairs - not used unless enabled. Per the brief, do not switch to these
+  # silently: the pipeline stops and reports if an enabled belt is unusable.
+  zawar:
+    enabled: false
+    climate: semi-arid, hilly dry-deciduous scrub
+    commodity: Zn-Pb
+    host: Sheared dolomite, Aravalli Supergroup
+    radius_m: 2500
+    deposits:
+      - name: Balaria
+        lat: 24.3598
+        lon: 73.7359
+    sources:
+      - "mindat Balaria Mine: https://www.mindat.org/loc-55001.html"
+    verification:
+      status: unverified
+      checked_by: null
+      checked_on: null
+      notes: >
+        Wikipedia's "Zawar" coordinates (27.15N, 88.35E) are WRONG (that is in Sikkim) -
+        do not use them. Add Mochia, Zawarmala and Baroi points before use.
+    control:
+      name: Zawar control (not yet proposed)
+      offset_km: [0.0, -30.0]
+      verification: {status: unverified, checked_by: null, checked_on: null, notes: "Placeholder offset."}
+
+  rampura_agucha:
+    enabled: false
+    climate: semi-arid, mostly farmland
+    commodity: Zn-Pb
+    host: Graphite-mica-sillimanite gneiss/schist, Banded Gneissic Complex
+    radius_m: 2000
+    deposits:
+      - name: Rampura Agucha mine
+        lat: 25.8430
+        lon: 74.7435
+    sources:
+      - "Mappls place record for Rampura Agucha Mine"
+      - "https://miningdataonline.com/property/3181/Rampura-Agucha-Mine.aspx"
+    verification:
+      status: unverified
+      checked_by: null
+      checked_on: null
+      notes: >
+        Open pit closed March 2018; underground only since 2013. The surroundings are
+        mostly cropland, so the signal would be crop condition, which irrigation and
+        management dominate.
+    control:
+      name: Rampura Agucha control (not yet proposed)
+      offset_km: [30.0, 0.0]
+      verification: {status: unverified, checked_by: null, checked_on: null, notes: "Placeholder offset."}

@@ -1,0 +1,51 @@
+# Pipeline parameters. Anything that changes a result lives here, not in code.
+
+cdse:
+  stac_url: https://stac.dataspace.copernicus.eu/v1
+  stac_collection: sentinel-2-l2a
+  openeo_url: https://openeo.dataspace.copernicus.eu
+  openeo_collection: SENTINEL2_L2A
+  # B11 (SWIR) is used only for NDMI, a water-stress diagnostic: metal stress and
+  # drought stress look alike in visible/red-edge bands, so we track moisture too.
+  bands: [B02, B04, B05, B06, B07, B08, B11, SCL]
+  resolution_m: 10   # everything is resampled (nearest) onto the 10 m grid
+
+# Converting digital numbers to surface reflectance: reflectance = (DN + offset) / scale.
+# Sentinel-2 L2A with processing baseline >= 04.00 (from 25 Jan 2022) stores DN with
+# BOA_ADD_OFFSET = -1000. Whether CDSE openEO has ALREADY applied that offset to
+# SENTINEL2_L2A is not confirmed. src/extract.py checks the reflectance of vegetated
+# pixels on every scene and stops if the values look like the wrong offset was used.
+# Ratio indices (CI, HMSSI) are very sensitive to this, so do not bypass the check.
+reflectance:
+  scale: 10000
+  offset: 0
+  nodata_dn: 0
+
+dates:
+  years: [2023, 2024]
+  # India seasons (month-day windows, inclusive).
+  seasons:
+    pre_monsoon: ["03-01", "05-31"]
+    monsoon: ["07-01", "09-30"]
+    post_monsoon: ["10-15", "12-15"]
+  max_scene_cloud_pct: 30     # tile-level STAC cloud filter (coarse pre-filter)
+  dates_per_season: 1
+  min_valid_fraction: 0.30    # after SCL masking, per zone per date; else the date is dropped
+  min_dates_per_belt: 3       # below this the belt is reported unusable (not substituted)
+
+masking:
+  # Keep only SCL class 4 (vegetation). Drops cloud (8,9,10), shadow (3), cirrus (10),
+  # snow (11), water (6), bare soil / not vegetated (5), dark area (2), unclassified (7),
+  # saturated/defective (1), nodata (0).
+  scl_keep: [4]
+  ndvi_floor: 0.2             # extra guard against sparse/bare pixels SCL misses
+  mine_buffer_m: 500          # buffer around OSM mine/industrial footprints (dust, spoil)
+  footprints_dir: config/mine_footprints
+
+analysis:
+  patch_size_px: 20           # 20 x 20 px at 10 m = 200 m patches (classifier samples)
+  min_patch_valid_fraction: 0.5
+  spatial_block_m: 2000       # grouping for spatial CV (patches in one block stay together)
+  cv_folds: 5
+  hmssi_psri_eps: 0.01        # |PSRI| below this -> HMSSI undefined (NaN); see indices.py
+  random_state: 42

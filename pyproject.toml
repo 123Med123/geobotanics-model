@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geobotanical-prospecting"
+version = "0.1.0"
+description = "Phase 1 method proof: do Sentinel-2 vegetation-index anomalies separate known base-metal mineralisation from matched controls?"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "rasterio>=1.3",
+    "geopandas>=0.14",
+    "shapely>=2.0",
+    "pyproj>=3.6",
+    "scikit-learn>=1.3",
+    "matplotlib>=3.7",
+    "pyyaml>=6.0",
+    "openeo>=0.30",        # CDSE openEO client (imagery download)
+    "pystac-client>=0.7",  # CDSE STAC search (scene/date selection, no auth needed)
+    "requests>=2.31",      # Overpass (OSM mine footprints)
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
