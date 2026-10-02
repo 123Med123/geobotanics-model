@@ -119,6 +119,56 @@ def test_run_belt_converts_reflectance_scale_error_to_reflectance_stop(tmp_path,
     assert exc.value.masks is None  # failed on the very first scene: nothing finished yet
 
 
+def _belt_for_run_belt(tmp_path, monkeypatch, rp, n_dates):
+    z = SimpleNamespace(zone_id="b1", role="mineralised", epsg=32643)
+    c = SimpleNamespace(zone_id="b1_control", role="control", epsg=32643)
+    pair = SimpleNamespace(belt="b1", zones=[z, c], mineralised=z, control=c)
+    cfg = {"dates": {"max_scene_cloud_pct": 30, "min_valid_fraction": 0.3, "min_dates_per_belt": 3},
+           "masking": {"footprints_dir": "config/mine_footprints"},
+           "reflectance": {"scale": 10000, "offset": 0, "nodata_dn": 0},
+           "analysis": {"hmssi_psri_eps": 0.01, "patch_size_px": 20, "min_patch_valid_fraction": 0.5},
+           "cdse": {}}
+    dates = pd.DataFrame([{"year": 2023, "season": "pre_monsoon", "date": pd.Timestamp(f"2023-0{i + 1}-05").date()}
+                          for i in range(n_dates)])
+    monkeypatch.setattr(rp, "choose_dates", lambda *a, **k: dates)
+    monkeypatch.setattr(rp, "load_footprints", lambda *a, **k: [])
+    monkeypatch.setattr(rp, "read_scene", lambda *a, **k: object())
+    return pair, cfg
+
+
+def test_missing_scene_stop_keeps_masks_of_finished_dates(tmp_path, monkeypatch):
+    """Dates 1 and 2 are cached, date 3 is not: the stop must carry the 4 finished zone-date rows."""
+    rp = _load_script()
+    pair, cfg = _belt_for_run_belt(tmp_path, monkeypatch, rp, n_dates=3)
+    present = []
+    for d in ("2023-01-05", "2023-02-05"):
+        for zid in ("b1", "b1_control"):
+            f = tmp_path / f"{zid}_{d}.tif"
+            f.write_bytes(b"x"); f.with_suffix(".json").write_text('{"bands": []}'); present.append(f)
+
+    monkeypatch.setattr(rp.ingest, "scene_path", lambda data_dir, zid, d: tmp_path / f"{zid}_{d}.tif")
+
+    def fake_process(zone, d, *a, **k):
+        info = {"belt": "b1", "zone_id": zone.zone_id, "role": zone.role, "date": d, "valid_fraction": 0.5}
+        return [], pd.DataFrame(), info
+
+    monkeypatch.setattr(rp, "process_scene", fake_process)
+    with pytest.raises(rp.PipelineStop) as exc:
+        rp.run_belt(pair, cfg, tmp_path, None, skip_download=True)
+    assert "is missing" in str(exc.value) and "2 date(s) finished" in str(exc.value)
+    assert not isinstance(exc.value, rp.ReflectanceStop)
+    assert len(exc.value.masks) == 4 and exc.value.masks["used"].all()
+
+
+def test_missing_first_scene_stop_has_no_masks(tmp_path, monkeypatch):
+    rp = _load_script()
+    pair, cfg = _belt_for_run_belt(tmp_path, monkeypatch, rp, n_dates=1)
+    monkeypatch.setattr(rp.ingest, "scene_path", lambda data_dir, zid, d: tmp_path / "nope.tif")
+    with pytest.raises(rp.PipelineStop) as exc:
+        rp.run_belt(pair, cfg, tmp_path, None, skip_download=True)
+    assert exc.value.masks is None and "0 date(s) finished" in str(exc.value)
+
+
 def test_stop_without_masks_writes_no_masking_csv(tmp_path, monkeypatch):
     rp = _load_script()
     monkeypatch.setattr(rp, "load_pairs", lambda *_a, **_k: {"b1": _fake_pair("b1")})

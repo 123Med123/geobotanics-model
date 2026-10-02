@@ -103,7 +103,12 @@ def run_belt(pair, cfg, data_dir: Path, conn, skip_download: bool):
                 path = ingest.scene_path(data_dir, z.zone_id, d)
                 man = path.with_suffix(".json")
                 if not (path.exists() and man.exists()):
-                    raise PipelineStop(f"--skip-download but {path} is missing")
+                    done = pd.DataFrame(mask_rows)
+                    raise PipelineStop(
+                        f"{pair.belt}: --skip-download but {path} is missing. The mask table covers the "
+                        f"{done.date.nunique() if not done.empty else 0} date(s) finished before this scene.",
+                        masks=done if not done.empty else None,
+                    )
                 bands = json.loads(man.read_text())["bands"]
             else:
                 sf = ingest.download_zone_date(conn, z, d, data_dir, cfg["cdse"]["openeo_collection"],
