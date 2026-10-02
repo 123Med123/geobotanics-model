@@ -145,13 +145,33 @@ The pipeline stops, and does not substitute anything, when:
   a reserve belt is the project owner's decision);
 - reflectance looks like the L2A offset is wrong (see `config/pipeline.yaml`).
 
-## Status (2026-09-28)
+## Status (2026-10-02)
 
 - [ ] Zone coordinates verified against primary sources. None are yet: see the notes in `config/zones.yaml`.
 - [ ] Control zones checked against GSI Bhukosh for mapped mineralisation and land-cover match.
-- [ ] Mine footprints fetched and reviewed.
-- [ ] L2A offset on CDSE openEO confirmed on a real scene (the check in `extract.py` will catch it).
-- [ ] First run.
+- [x] Mine footprints fetched from OSM (khetri 7 polygons, malanjkhand 4, khetri_control 1, malanjkhand_control 0).
+- [ ] Mine footprints reviewed against imagery. **Not done.** Nothing is marked `reviewed_empty`. No OSM pit lies within 3 km of the Kolihan or Chandmari points, so Khetri is certainly incomplete.
+- [x] L2A offset on CDSE openEO confirmed on real scenes: `reflectance.offset: 0` is correct (openEO already applies BOA_ADD_OFFSET). The `extract.py` check passed on all 22 downloaded scenes; blue-band 1st percentile was -0.0003 to 0.055 (the check fails above 0.08), with no excess of negative reflectance. It is a coarse heuristic, not a calibration.
+- [ ] First run. **Not done.** The `--allow-unverified` plumbing test downloaded the scenes and then stopped at the date gate for both belts (details below). No `results/` were produced.
+
+### Plumbing test, 2026-10-02 (UNVERIFIED coordinates; nothing here is evidence)
+
+The pipeline stopped, as designed, and nothing was substituted: no reserve belt, no threshold change.
+
+- **khetri: 2 of 6 candidate dates usable (need 3).** Failures were low vegetation fractions after the SCL and NDVI >= 0.2 mask, not clouds and not the mine mask (footprints plus the 500 m buffer cover about 10% of the zone). The control zone was 1.8%, 8% and 27% valid on three dates; the mineralised zone was 12-19% valid on the two March dates. This is the land-cover mismatch flagged for the Khetri control in `config/zones.yaml`, in a semi-arid belt. The table does not separate the SCL-vegetation effect from the NDVI floor, so which of the two removes the pixels is not established.
+- **malanjkhand: 0 of 5 candidate dates usable (need 3).** The control was 41-99% valid. The mineralised zone was 1-28% valid: SCL non-vegetation removed 20-96% of it and the footprint mask a further 3-32%. The OSM "Malanjkhand Copper Mine" polygon is about 976 ha, and with the 500 m buffer the footprint covers about 66% of the zone, so the zone as drawn is mostly mine. That is the case the masking section above warns about.
+- Both belts have only 5-6 candidate dates under the 30% tile-cloud limit for 2023-2024.
+- Off-swath area (raster nodata) was 0-16% of the Khetri mineralised zone on some dates and 0% elsewhere. It did not decide any date.
+- The pipeline writes `masking.csv` only on success, so a stopped run leaves no mask table; the per-date numbers above came from re-running the pipeline's own masking functions on the cached scenes.
+
+### Code fixes made during the plumbing test (no `config/pipeline.yaml` change)
+
+- `src/ingest.py`: the STAC date search now queries per quarter with retries. The CDSE gateway returned 504s part-way through one 2-year paged query. The set of items searched is unchanged.
+- `src/extract.py`: pixels equal to the raster's own nodata tag (int16 -32768, from off-swath areas) are now NaN. Before, they became reflectance -3.2768 and blinded the blue-band percentile check on scenes with >= 1% fill. Valid-pixel masks are unchanged. Covered by `tests/test_extract.py`.
+
+### Environment note
+
+From the author's Windows machine, `requests` could not resolve `overpass-api.de` with the default dual-stack lookup and Overpass rejected the default `python-requests` User-Agent (406). Forcing IPv4 and sending a descriptive User-Agent worked; `scripts/fetch_osm_footprints.py` itself is unchanged.
 
 ## Data and licences
 
