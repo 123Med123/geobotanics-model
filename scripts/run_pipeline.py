@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src import analysis, ingest, plots  # noqa: E402
-from src.extract import process_scene, read_scene  # noqa: E402
+from src.extract import ReflectanceScaleError, process_scene, read_scene  # noqa: E402
 from src.indices import INDEX_NAMES  # noqa: E402
 from src.masking import load_footprints  # noqa: E402
 from src.zones import load_pairs  # noqa: E402
@@ -45,6 +45,12 @@ class PipelineStop(RuntimeError):
     def __init__(self, message: str, masks: pd.DataFrame | None = None):
         super().__init__(message)
         self.masks = masks
+
+
+class ReflectanceStop(PipelineStop):
+    """Reflectance looks wrong (usually the L2A offset). ``reflectance.*`` is shared by every belt, so
+    this ends the whole run: no other belt is processed and no results are written, even for a belt
+    that finished earlier."""
 
 
 def parse_args():
@@ -104,8 +110,17 @@ def run_belt(pair, cfg, data_dir: Path, conn, skip_download: bool):
                                                cfg["cdse"]["bands"], cfg["cdse"]["resolution_m"])
                 path, bands = sf.path, sf.manifest["bands"]
             scene = read_scene(path, bands, rc["scale"], rc["offset"], rc["nodata_dn"])
-            per_zone[z.zone_id] = process_scene(z, d, scene, footprints[z.zone_id], mc, ac["hmssi_psri_eps"],
-                                                ac["patch_size_px"], ac["min_patch_valid_fraction"])
+            try:
+                per_zone[z.zone_id] = process_scene(z, d, scene, footprints[z.zone_id], mc, ac["hmssi_psri_eps"],
+                                                    ac["patch_size_px"], ac["min_patch_valid_fraction"])
+            except ReflectanceScaleError as e:
+                done = pd.DataFrame(mask_rows)
+                raise ReflectanceStop(
+                    f"{pair.belt}: reflectance check failed on {e} Nothing was substituted and no result was written. The mask table covers "
+                    f"the {done.date.nunique() if not done.empty else 0} date(s) finished before this scene "
+                    "(the failing scene has no row). Changing reflectance.offset is a decision for the project owner.",
+                    masks=done if not done.empty else None,
+                ) from e
         # A date counts only if BOTH zones are usable that day (the control must see the same weather).
         fracs = {zid: r[2]["valid_fraction"] for zid, r in per_zone.items()}
         usable = all(f >= cfg["dates"]["min_valid_fraction"] for f in fracs.values())
@@ -216,6 +231,12 @@ def main():
             stopped.append(str(e))
             if e.masks is not None:  # keep the numbers behind the stop (rows have used=False/True per date)
                 all_masks.append(e.masks)
+            if isinstance(e, ReflectanceStop):
+                # Shared reflectance settings are suspect, so every belt is: write only the mask table.
+                if all_masks:
+                    pd.concat(all_masks, ignore_index=True).to_csv(results_dir / "masking.csv", index=False)
+                    print(f"Mask table so far: {results_dir / 'masking.csv'}")
+                sys.exit("Run aborted on a reflectance check; no belt's results were written:\n" + "\n".join(stopped))
             continue
         all_stats.append(s); all_patches.append(p); all_masks.append(m)
 

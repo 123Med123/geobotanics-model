@@ -162,7 +162,7 @@ The pipeline stopped, as designed, and nothing was substituted: no reserve belt,
 - **malanjkhand: 0 of 5 candidate dates usable (need 3).** The control was 41-99% valid. The mineralised zone was 1-28% valid: SCL non-vegetation removed 20-96% of it and the footprint mask a further 3-32%. The OSM "Malanjkhand Copper Mine" polygon is about 976 ha, and with the 500 m buffer the footprint covers about 66% of the zone, so the zone as drawn is mostly mine. That is the case the masking section above warns about.
 - Both belts have only 5-6 candidate dates under the 30% tile-cloud limit for 2023-2024.
 - Off-swath area (raster nodata) was 0-16% of the Khetri mineralised zone on some dates and 0% elsewhere. It did not decide any date.
-- A run that stops at the date gate now still writes `results/masking.csv` (per zone and date, with a `used` flag), so the numbers behind the stop are kept. It writes nothing else in that case: no report, no statistics. A stop before masking (no dates, missing footprint file) has no mask table to write.
+- A run that stops at the date gate now still writes `results/masking.csv` (per zone and date, with a `used` flag), so the numbers behind the stop are kept. It writes nothing else in that case: no report, no statistics. A stop before masking (no dates, missing footprint file) has no mask table to write. A failed reflectance check (`ReflectanceScaleError`) is now a stop as well, and it ends the whole run, because `reflectance.*` is shared by every belt: no other belt is processed and no results are written, even for a belt that finished earlier. Only the mask table for the dates finished so far is kept.
 
 ### Code fixes made during the plumbing test (no `config/pipeline.yaml` change)
 
