@@ -39,8 +39,15 @@ def read_scene(path: Path, band_order: Sequence[str], scale: float, offset: floa
         data = {name: src.read(i + 1) for i, name in enumerate(names)}
         epsg = src.crs.to_epsg() if src.crs else None
         transform = src.transform
+        file_nodata = src.nodata
     scl = data.pop("SCL").astype(np.int16)
     refl = {b: ix.dn_to_reflectance(data[b], scale=scale, offset=offset, nodata=nodata_dn) for b in REFLECTANCE_BANDS}
+    # openEO fills off-swath pixels with the raster's own nodata tag (int16 -32768), which
+    # is not nodata_dn (0). Left alone it becomes a finite reflectance of -3.2768 and
+    # blinds the percentile test in check_reflectance.
+    if file_nodata is not None and file_nodata != nodata_dn:
+        for b in REFLECTANCE_BANDS:
+            refl[b] = np.where(data[b] == file_nodata, np.nan, refl[b])
     return Scene(bands=refl, scl=scl, transform=transform, epsg=epsg)
 
 
