@@ -57,18 +57,48 @@ def search_scenes(
     Returns columns: date, item_id, cloud_pct.
     """
     from pystac_client import Client
+    from pystac_client.exceptions import APIError
 
     client = Client.open(stac_url)
-    search = client.search(collections=[collection], bbox=list(bbox_lonlat), datetime=f"{start}/{end}")
-    rows = []
-    for item in search.items():
-        dt = item.datetime or datetime.fromisoformat(item.properties["start_datetime"].replace("Z", "+00:00"))
-        rows.append({
-            "date": dt.date(),
-            "item_id": item.id,
-            "cloud_pct": float(item.properties.get("eo:cloud_cover", 100.0)),
-        })
-    return pd.DataFrame(rows, columns=["date", "item_id", "cloud_pct"])
+    rows: dict[str, dict] = {}
+    # The CDSE STAC gateway answers slowly (tens of seconds per page for a multi-year
+    # query) and sometimes with 504, so ask quarter by quarter and retry each chunk.
+    # The union of the chunks is the same item set as one query over start..end.
+    for lo, hi in _date_chunks(date.fromisoformat(start), date.fromisoformat(end)):
+        for attempt in range(1, _STAC_RETRIES + 1):
+            try:
+                search = client.search(collections=[collection], bbox=list(bbox_lonlat),
+                                       datetime=f"{lo.isoformat()}/{hi.isoformat()}", limit=_STAC_PAGE_SIZE)
+                items = list(search.items())
+                break
+            except (APIError, OSError):
+                if attempt == _STAC_RETRIES:
+                    raise
+                time.sleep(5 * attempt)
+        for item in items:
+            dt = item.datetime or datetime.fromisoformat(item.properties["start_datetime"].replace("Z", "+00:00"))
+            rows[item.id] = {
+                "date": dt.date(),
+                "item_id": item.id,
+                "cloud_pct": float(item.properties.get("eo:cloud_cover", 100.0)),
+            }
+    return pd.DataFrame(list(rows.values()), columns=["date", "item_id", "cloud_pct"])
+
+
+_STAC_RETRIES = 4
+_STAC_PAGE_SIZE = 50
+
+
+def _date_chunks(start: date, end: date) -> list[tuple[date, date]]:
+    """Split start..end (inclusive) into calendar-quarter chunks."""
+    chunks, cur = [], start
+    while cur <= end:
+        q_end_month = ((cur.month - 1) // 3 + 1) * 3
+        nxt = date(cur.year + (q_end_month == 12), q_end_month % 12 + 1, 1)
+        hi = min(nxt - timedelta(days=1), end)
+        chunks.append((cur, hi))
+        cur = hi + timedelta(days=1)
+    return chunks
 
 
 def season_of(d: date, seasons: dict[str, Sequence[str]]) -> str | None:
