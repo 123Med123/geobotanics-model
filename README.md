@@ -68,6 +68,7 @@ src/plots.py             time-series plots
 scripts/run_pipeline.py  end-to-end run -> results/
 scripts/check_access.py  verify network + CDSE credentials before a run
 scripts/fetch_osm_footprints.py  starting footprints from OpenStreetMap (review by hand!)
+scripts/make_review_overlay.py   HTML review map: zone, footprints + buffer, per-date mask categories, draw tool
 tests/                   index math, masking, date selection, analysis on synthetic data
 ```
 
@@ -122,6 +123,9 @@ python scripts/check_access.py           # network + STAC + openEO login
 python scripts/fetch_osm_footprints.py --belt khetri
 python scripts/fetch_osm_footprints.py --belt malanjkhand
 #   -> review/extend config/mine_footprints/*.geojson against imagery
+
+python scripts/make_review_overlay.py --belt malanjkhand     # [--control]; -> results/review/*.html
+#   a review aid over satellite imagery (needs internet for tiles); re-run after editing a footprint file
 
 python scripts/run_pipeline.py           # refuses unverified zones
 python scripts/run_pipeline.py --allow-unverified   # plumbing test; every output stamped UNVERIFIED
