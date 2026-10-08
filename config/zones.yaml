@@ -53,6 +53,21 @@ belts:
         pages not opened. Banwas deposit omitted (no coordinates found). Kolihan and
         Chandmari have only arc-minute precision (~1.8 km) - check against the pits in
         imagery before verifying.
+        2026-10-08 imagery check (Claude, unverified, NOT a verification): the Kolihan
+        circle is almost all irrigated farmland and the Chandmari circle is scrub hills,
+        and neither contains any mapped mine footprint. The nearest visible workings are
+        3.5-4.0 km from the Kolihan point (OSM ways 673044916, 673127923, 673127924,
+        about 28.00-28.02N 75.767-75.776E) and 4.8-5.1 km from the Chandmari point (OSM
+        ways 673127915, 673127916, about 27.90-27.92N 75.808-75.815E). Arc-minute rounding
+        explains at most ~1.4 km, so the points may be misplaced. These workings are only
+        the nearest visible mining; NOTHING confirms they are Kolihan or Chandmari. No
+        primary source with coordinates could be opened (Knight PDF text not extractable,
+        PorterGeo and science.gov pages give none, Mindat/TheDiggings blocked). A
+        USGS-derived "Khetri-Kolihan-Chandmari" record at 27.9989N 75.8004E, seen only
+        as a search snippet, is one aggregate point. Lease coordinates in Hindustan
+        Copper environmental-clearance documents (forestsclearance.nic.in) and the GSI
+        Bhukosh occurrence layer are the next places to look. lat/lon and status above
+        are unchanged.
     control:
       name: Khetri control (proposed, ~30 km W, off-strike)
       offset_km: [-30.0, 0.0]   # east, north
