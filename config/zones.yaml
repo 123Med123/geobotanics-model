@@ -44,6 +44,7 @@ belts:
     sources:
       - "Knight et al., The Khetri Copper Belt, Rajasthan: IOCG terrane (PGC Publishing): https://portergeo.com.au/full_text/Knight_Khetri-PGC_Publishing.pdf"
       - "science.gov topic page, khetri copper belt (lat/long table): https://www.science.gov/topicpages/k/khetri+copper+belt"
+      - "Hindustan Copper Ltd, Subsidence monitoring report, Kolihan Copper Mine, Khetri Copper Complex (Q3), sec. 2.1 and Table 5 (Kolihan lease lat/long, SoI toposheet 44P/16): https://forestsclearance.nic.in/writereaddata/Addinfo/0_0_41111261291KOLIHAN_Subsidence_REPORT_Q3.pdf"
     verification:
       status: unverified
       checked_by: null
@@ -59,14 +60,26 @@ belts:
         3.5-4.0 km from the Kolihan point (OSM ways 673044916, 673127923, 673127924,
         about 28.00-28.02N 75.767-75.776E) and 4.8-5.1 km from the Chandmari point (OSM
         ways 673127915, 673127916, about 27.90-27.92N 75.808-75.815E). Arc-minute rounding
-        explains at most ~1.4 km, so the points may be misplaced. These workings are only
-        the nearest visible mining; NOTHING confirms they are Kolihan or Chandmari. No
-        primary source with coordinates could be opened (Knight PDF text not extractable,
-        PorterGeo and science.gov pages give none, Mindat/TheDiggings blocked). A
+        explains at most ~1.4 km, so the points may be misplaced. For Chandmari these
+        workings are only the nearest visible mining and NOTHING confirms they are
+        Chandmari (see the Kolihan finding below). Other pages tried gave no coordinates
+        (Knight PDF text not extractable, PorterGeo and science.gov pages give none,
+        Mindat/TheDiggings blocked). A
         USGS-derived "Khetri-Kolihan-Chandmari" record at 27.9989N 75.8004E, seen only
         as a search snippet, is one aggregate point. Lease coordinates in Hindustan
         Copper environmental-clearance documents (forestsclearance.nic.in) and the GSI
-        Bhukosh occurrence layer are the next places to look. lat/lon and status above
+        Bhukosh occurrence layer are the next places to look.
+        KOLIHAN, primary source found (2026-10-08): the Hindustan Copper subsidence
+        report for Kolihan Copper Mine (listed in sources, sec. 2.1) gives the mining
+        lease (underground mine, ~163 ha, SoI toposheet 44P/16, "northern tip of the
+        Khetri Copper Belt") as lat N 28 00' 46" - 28 01' 22", lon E 75 45' 32" -
+        75 47' 12", with DGPS boundary stations at 28.0115-28.0156N, 75.7747-75.7769E
+        (Table 5). The configured Kolihan point (28.0000N 75.7333E) is 2.9 km from the
+        nearest edge of that extent and 4.4 km from its centre (28.0178N 75.7728E);
+        OSM quarry ways 673127923 and 673127924 lie inside the extent. The lease
+        extent is a lat/long box, not the orebody trace, and the host hill range is the
+        western part of the lease. The report does not mention Chandmari. A corrected
+        Kolihan point is for the owner to choose and confirm; lat/lon and status above
         are unchanged.
     control:
       name: Khetri control (proposed, ~30 km W, off-strike)
